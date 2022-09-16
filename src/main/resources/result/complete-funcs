@@ -1,5 +1,4 @@
 <DEFAULT>.AllPrivateIdentifiersValid
-<DEFAULT>.Contains
 <DEFAULT>.ContainsArguments
 AddEntriesFromIterable
 AddRestrictedFunctionProperties

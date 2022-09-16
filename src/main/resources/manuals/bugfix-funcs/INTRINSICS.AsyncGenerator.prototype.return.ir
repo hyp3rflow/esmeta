@@ -16,7 +16,7 @@ def <BUILTIN>:INTRINSICS.AsyncGenerator.prototype.return(
     return promiseCapability.Promise
   } else {
     %4 = result
-    if (? %4: "CompletionRecord") {
+    if (? %4: CompletionRecord) {
       result = result.Value
     } else {}
   }

@@ -1,7 +1,7 @@
 def <SYNTAX>:UnaryExpression[3,0].Evaluation(this: Unknown): Unknown {
   sdo-call %0 = this[0]->Evaluation()
   let val = [? %0] // BUG (fixed in #2744)
-  if (? val: "ReferenceRecord") {
+  if (? val: ReferenceRecord) {
     call %1 = clo<IsUnresolvableReference>(val)
     if (= %1 true) {
       return "undefined"

@@ -1,10 +1,10 @@
 def <CONT>:GeneratorStart:cont0(): Unknown {
   %0 = generatorBody
-  if (? %0: "ParseNode") {
+  if (? %0: Ast) {
     sdo-call %1 = generatorBody->Evaluation()
     let result = %1
   } else {
-    assert (? generatorBody: "AbstractClosure")
+    assert (? generatorBody: AbstractClosure)
     call %2 = generatorBody()
     let result = %2
   }

@@ -410,10 +410,10 @@ class AbsTransfer(sem: AbsSemantics) {
           v <- transfer(base)
           st <- get
         } yield v.typeOf(st)
-      case ETypeCheck(expr, tyExpr) =>
+      case ETypeCheck(expr, ty) =>
         for {
           v <- transfer(expr)
-          tv <- transfer(tyExpr)
+          tv <- transfer(EStr(ty.toString))
           st <- get
         } yield tv.getSingle match
           case One(Str(s))   => v.typeCheck(s, st)
@@ -671,10 +671,10 @@ class AbsTransfer(sem: AbsSemantics) {
         tv <- transfer(target)
         _ <- modify(pruneValue(rv, tv, positive))
       } yield ()
-    case ETypeCheck(ERef(ref: Local), tyExpr) =>
+    case ETypeCheck(ERef(ref: Local), ty) =>
       for {
         rv <- transfer(ref)
-        tv <- transfer(tyExpr)
+        tv <- transfer(EStr(ty.toString))
         _ <- tv.getSingle match
           case One(Str(s))   => modify(pruneTypeCheck(rv, s, positive))
           case One(Nt(n, _)) => modify(pruneTypeCheck(rv, n, positive))

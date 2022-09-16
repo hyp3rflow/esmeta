@@ -163,7 +163,7 @@ class StringifyTinyTest extends IRTest {
     lazy val clamp = EClamp(xExpr, xExpr, xExpr)
     lazy val convert = EConvert(COp.ToBigInt, xExpr)
     lazy val typeOf = ETypeOf(xExpr)
-    lazy val typeCheck = ETypeCheck(xExpr, EStr(ty.toString))
+    lazy val typeCheck = ETypeCheck(xExpr, ty)
     // AST expressions
     lazy val ast = ESyntactic("Identifier", Nil, 1, Nil)
     lazy val astArgs = ESyntactic("Identifier", List(true, false), 1, Nil)
@@ -227,7 +227,7 @@ class StringifyTinyTest extends IRTest {
       clamp -> "(clamp x x x)",
       convert -> "([bigInt] x)",
       typeOf -> "(typeof x)",
-      typeCheck -> "(? x: \"Number\")",
+      typeCheck -> "(? x: Number)",
       // AST expressions
       ast -> "|Identifier|<1>",
       astArgs -> "|Identifier|[TF]<1>",

@@ -4,9 +4,9 @@ def DefineMethodProperty(
   closure: FunctionObject,
   enumerable: Boolean
 ): Unknown {
-  assert (&& (? homeObject: "OrdinaryObject") homeObject.Extensible)
+  assert (&& (? homeObject: OrdinaryObject) homeObject.Extensible)
   %0 = key
-  if (? %0: "PrivateName") {
+  if (? %0: PrivateName) {
     return (new PrivateElement("Key" -> key, "Kind" -> ~method~, "Value" -> closure))
   } else {
     let desc = (new PropertyDescriptor("Value" -> closure, "Writable" -> true, "Enumerable" -> enumerable, "Configurable" -> true))

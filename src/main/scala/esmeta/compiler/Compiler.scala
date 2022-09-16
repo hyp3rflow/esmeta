@@ -655,7 +655,7 @@ class Compiler(
     case SymbolLiteral(sym)                  => toERef(GLOBAL_SYMBOL, EStr(sym))
     case ProductionLiteral(lhsName, rhsName) =>
       // XXX need to handle arguments, children?
-      val (lhs, rhsIdx) = getProductionData(lhsName, rhsName)
+      val (lhs, rhsIdx, _) = getProductionData(lhsName, rhsName)
       ESyntactic(lhsName, lhs.params.map(_ => true), rhsIdx, Nil)
     case ErrorObjectLiteral(name) =>
       val proto = Intrinsic(name, List("prototype"))
@@ -709,7 +709,7 @@ class Compiler(
         val xExpr = compile(fb, expr)
         val e =
           tys
-            .map[Expr](t => ETypeCheck(xExpr, EStr(t.normalizedName)))
+            .map[Expr](t => ETypeCheck(xExpr, compile(t)))
             .reduce(or(_, _))
         if (neg) not(e) else e
       case HasFieldCondition(ref, neg, field) =>
@@ -718,9 +718,12 @@ class Compiler(
       // XXX need to be generalized?
       case ProductionCondition(nt, lhsName, rhsName) =>
         val base = compile(fb, nt)
-        val (_, rhsIdx) = getProductionData(lhsName, rhsName)
+        val (lhs, rhsIdx, rhs) = getProductionData(lhsName, rhsName)
         fb.ntBindings ++= List((rhsName, base, Some(0)))
-        ETypeCheck(base, EStr(lhsName + rhsIdx))
+        ETypeCheck(
+          base,
+          compile(Type(AstSingleT(lhsName, rhsIdx, rhs.countSubs))),
+        )
       case PredicateCondition(expr, neg, op) =>
         import PredicateConditionOperator.*
         val x = compile(fb, expr)
@@ -766,7 +769,7 @@ class Compiler(
               List("Get", "Set", "Enumerable", "Configurable")
             or(hasFields(fb, x, dataFields), hasFields(fb, x, accessorFields))
           case Nonterminal =>
-            ETypeCheck(x, EStr("Nonterminal"))
+            ETypeCheck(x, compile(Type(AstTopT)))
           case IntegralNumber => isIntegral(x)
         }
         if (neg) not(cond) else cond
@@ -884,14 +887,14 @@ class Compiler(
   }
 
   /** production helpers */
-  def getProductionData(lhsName: String, rhsName: String): (Lhs, Int) =
+  def getProductionData(lhsName: String, rhsName: String): (Lhs, Int, Rhs) =
     val prod = grammar.nameMap(lhsName)
     val rhsList = prod.rhsList.zipWithIndex.filter {
       case (rhs, _) if rhsName == "[empty]" => rhs.isEmpty
       case (rhs, _)                         => rhs.allNames contains rhsName
     }
     rhsList match
-      case (rhs, idx) :: Nil => (prod.lhs, idx)
+      case (rhs, idx) :: Nil => (prod.lhs, idx, rhs)
       case _                 => error("invalid production")
 
   /** instruction helpers */
@@ -916,7 +919,7 @@ class Compiler(
   inline def isAbsent(x: Expr) = EBinary(BOp.Eq, x, EAbsent)
   inline def isIntegral(x: Expr) =
     val m = EConvert(COp.ToMath, x)
-    and(ETypeCheck(x, EStr("Number")), is(m, floor(m)))
+    and(ETypeCheck(x, compile(Type(NumberTopT))), is(m, floor(m)))
   def not(expr: Expr) = expr match
     case EBool(b)              => EBool(!b)
     case EUnary(UOp.Not, expr) => expr

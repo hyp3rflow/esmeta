@@ -144,7 +144,7 @@ trait Parsers extends TyParsers {
       case c ~ e => EConvert(c, e)
     } | "(" ~ "typeof" ~> expr <~ ")" ^^ {
       case e => ETypeOf(e)
-    } | "(" ~ "?" ~> expr ~ (":" ~> expr) <~ ")" ^^ {
+    } | "(" ~ "?" ~> expr ~ (":" ~> irType) <~ ")" ^^ {
       case e ~ t => ETypeCheck(e, t)
     } | "(" ~ "duplicated" ~> expr <~ ")" ^^ {
       case e => EDuplicated(e)

@@ -329,12 +329,9 @@ class Interpreter(
             case v            => ???
         case v => ???,
       )
-    case ETypeCheck(expr, tyExpr) =>
+    case ETypeCheck(expr, ty) =>
       val v = eval(expr)
-      val tyName = eval(tyExpr) match
-        case Str(s)   => s
-        case Nt(s, _) => s
-        case v        => throw InvalidTypeExpr(expr, v)
+      val tyName = ty.toString
       Bool(v match
         case _: Number => tyName == "Number"
         case _: BigInt => tyName == "BigInt"
