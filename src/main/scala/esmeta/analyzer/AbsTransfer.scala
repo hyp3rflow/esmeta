@@ -219,7 +219,11 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
         v <- transfer(expr)
         _ <- modify(prune(expr, true))
         _ <- if (v ⊑ AVF) put(AbsState.Bot) else pure(())
-      } yield ()
+      } yield {
+        if (!(AVT ⊑ v)) warning(s"assertion failed: $expr")
+        else if (AVF ⊑ v) warning(s"maybe assertion failed: $expr") 
+        ()
+      }
     case IPrint(expr) => st => st /* skip */
     case INop()       => st => st /* skip */
   }
@@ -251,6 +255,8 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
             ) ++ captured
             sem += target -> st.copied(locals = newLocals)
           }
+          if (fv.clo.isBottom && fv.cont.isEmpty)
+            warning(s"invalid function (no function): $fexpr")
           AbsValue.Bot
         }
       case IMethodCall(_, base, method, args) =>
@@ -449,6 +455,8 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
               captured = cap.map(x => x -> st.lookupLocal(x)).toMap
             } yield AbsValue(AClo(f, captured))
           case None =>
+            // unknown function name
+            warning(s"unknown function name: $fname")
             for { _ <- put(AbsState.Bot) } yield AbsValue.Bot
         }
       case ECont(fname) =>
@@ -657,6 +665,9 @@ class AbsTransfer(sem: AbsSemantics) extends Optimized with PruneHelper {
   )(using cp: ControlPoint): Result[AbsValue] = {
     val checkReturn: Result[Unit] =
       if (check) doReturn(riaExpr, value.abruptCompletion)
+      // good
+      // else if (!value.abruptCompletion.isBottom)
+      //   warning(s"unchecked abrupt completion: $riaExpr w/ $value")
       else ()
     for (_ <- checkReturn) yield value.unwrapCompletion
   }

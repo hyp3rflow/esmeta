@@ -108,12 +108,20 @@ object TypeDomain extends state.Domain {
     def update(x: Id, value: AbsValue): Elem = x match
       case x: Local  => defineLocal(x -> value)
       case x: Global =>
+        // not affected
         // TODO if (value !⊑ base(x))
         //   warning(s"invalid global variable update: $x = $value")
         elem
 
     /** property setter */
-    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = elem
+    def update(base: AbsValue, prop: AbsValue, value: AbsValue): Elem = {
+      val expectedTy = get(base, prop)
+      if ((expectedTy ⊓ value).isBottom)
+        warning(
+          s"invalid property update: $base[$prop] = $value, expected: $expectedTy",
+        )
+      elem
+    }
 
     /** deletion with reference values */
     def delete(refV: AbsRefValue): Elem = elem
@@ -125,8 +133,11 @@ object TypeDomain extends state.Domain {
     def remove(list: AbsValue, value: AbsValue): Elem = elem
 
     /** pop a value in a list */
-    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) =
+    def pop(list: AbsValue, front: Boolean): (AbsValue, Elem) = {
+      if (list.ty.list.isBottom)
+        warning(s"invalid pop expression (expected ListTy): $list")
       (list.ty.list.elem.fold(AbsValue.Bot)(AbsValue(_)), elem)
+    }
 
     /** set a type to an address partition */
     def setType(v: AbsValue, tname: String): (AbsValue, Elem) =
@@ -180,13 +191,32 @@ object TypeDomain extends state.Domain {
       pairs: Iterable[(AbsValue, AbsValue)],
     ): (AbsValue, Elem) =
       val value =
-        if (tname == "Record") RecordT((for {
-          (k, v) <- pairs
-        } yield k.getSingle match
-          case One(Str(key)) => key -> v.ty
-          case _             => exploded(s"imprecise field name: $k")
-        ).toMap)
-        else NameT(tname)
+        if (tname == "Record")
+          RecordT((for {
+            (k, v) <- pairs
+          } yield k.getSingle match
+            case One(Str(key)) => key -> v.ty
+            case _             => exploded(s"imprecise field name: $k")
+          ).toMap)
+        else {
+          // val isKnownTy = cfg.tyModel.infos.get(tname).isDefined
+          // if (isKnownTy)
+          //   for {
+          //     (k, v) <- pairs
+          //   } yield k.getSingle match
+          //     case One(Str(key)) => {
+          //       val propTy = cfg.tyModel.getProp(tname, key)
+          //       // invalid property type + unknown property
+          //       if (propTy.isBottom || !(v.ty ⊑ propTy))
+          //         warning(
+          //           s"invalid map property: $tname[\"$key\"], ${v.ty} -> $propTy",
+          //         )
+          //     }
+          //     case _ =>
+          // // unknown type
+          // else warning(s"unknown type: $tname")
+          NameT(tname)
+        }
       (AbsValue(value), elem)
 
     /** allocation of list with address partitions */
@@ -333,6 +363,7 @@ object TypeDomain extends state.Domain {
                 else () // TODO warning(s"invalid access: $name of $ast")
           case Inf => res ||= AstT
       case _ => res ||= AstT
+    // invalid ast value property
     // TODO if (!ast.isBottom)
     //   boundCheck(prop, MathT || StrT, t => s"invalid access: $t of $ast")
     res
@@ -344,7 +375,8 @@ object TypeDomain extends state.Domain {
       var res = ValueTy.Bot
       if (prop.str contains "length") res ||= MathT
       if (!prop.math.isBottom) res ||= CodeUnitT
-      // TODO if (!str.isBottom)
+      // invalid access on string type
+      // TODO if (res.isBottom)
       //   boundCheck(
       //     prop,
       //     MathT || StrT("length"),
@@ -364,7 +396,7 @@ object TypeDomain extends state.Domain {
           if (name == "IntrinsicsRecord") res ||= ObjectT
           Set()
         case Fin(set) => set
-    } res ||= cfg.tyModel.getProp(name, propStr)
+    } res ||= cfg.tyModel.getProp(name, propStr, check = true)
     res
 
   // record lookup

@@ -15,6 +15,7 @@ import esmeta.util.Appender.*
 import esmeta.util.BaseUtils.*
 import scala.annotation.tailrec
 import scala.collection.mutable.{Map => MMap, Set => MSet}
+import esmeta.ty.isBottom
 
 /** type domain for values */
 object TypeDomain extends value.Domain {
@@ -293,6 +294,8 @@ object TypeDomain extends value.Domain {
       )
     def unwrapCompletion: Elem =
       val ty = elem.ty
+      // Too many false alarm
+      // if(!ty.abrupt.isBottom) warning(s"unwrap abrupt completion: $ty")
       Elem(ValueTy(pureValue = ty.normal || ty.pureValue))
     def isCompletion: Elem =
       val ty = elem.ty
@@ -453,7 +456,9 @@ object TypeDomain extends value.Domain {
               (!r.ty.math.isBottom || !r.ty.number.isBottom)
             ) || (l.ty.bigInt && r.ty.bigInt)
           ) Set(true, false)
-          else Set(),
+          else
+            warning("numeric comparison with non-numeric type")
+            Set(),
         ),
       ),
     )
