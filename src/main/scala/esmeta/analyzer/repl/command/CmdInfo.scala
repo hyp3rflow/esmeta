@@ -44,7 +44,7 @@ case object CmdInfo
       case (`callsite`, _) =>
         val cp = REPL.curCp.get
         val rp = ReturnPoint(cp.func, cp.view)
-        sem.retEdges(rp)
+        sem.retEdges(rp).map(_.np)
       case _ =>
         println("Inappropriate argument")
         Set()

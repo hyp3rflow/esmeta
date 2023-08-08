@@ -99,6 +99,18 @@ object Appender {
     vRule: Rule[V],
   ): Rule[Iterable[(K, V)]] = sortedMapRule()
 
+  def unsortedMapRule[K, V](
+    left: String = "{",
+    right: String = "}",
+    sep: String = " -> ",
+  )(using
+    kRule: Rule[K],
+    vRule: Rule[V],
+  ): Rule[Iterable[(K, V)]] = (app, map) =>
+    given Rule[(K, V)] = arrowRule(sep)
+    if (map.size == 0) app >> left >> right
+    else app.wrap(for (pair <- map.toList) app :> pair)
+
   /** sorted map appender */
   def sortedMapRule[K, V](
     left: String = "{",

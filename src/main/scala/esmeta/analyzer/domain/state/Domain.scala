@@ -69,6 +69,9 @@ trait Domain extends domain.Domain[State] {
     /** define global variables */
     def defineGlobal(pairs: (Global, AbsValue)*): Elem
 
+    /** refine multiple local variables */
+    def refine(pairs: Set[(Ref, AbsValue)]): Elem
+
     /** setter with reference values */
     def update(refV: AbsRefValue, value: AbsValue): Elem = refV match
       case AbsRefId(x)            => update(x, value)

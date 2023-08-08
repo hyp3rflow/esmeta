@@ -34,8 +34,8 @@ class Graph(
         case _ =>
           var visited = Set[ReturnPoint]()
           for {
-            (calleeRp, callerNps) <- sem.retEdges
-            callerNp <- callerNps
+            (calleeRp, retEdges) <- sem.retEdges
+            ReturnEdge(callerNp, _) <- retEdges
             calleePrinter = DotPrinter(calleeRp, cur)
             callerPrinter = DotPrinter(callerNp, cur)
             callerRp = callerPrinter.rp
@@ -59,14 +59,14 @@ class Graph(
     var visited = Set[ReturnPoint](printer.rp)
     def aux(calleePrinter: DotPrinter, depth: Int): Unit = if (depth > 0) {
       val calleeRp = calleePrinter.rp
-      for (callerNp @ NodePoint(_, call, callView) <- sem.getRetEdges(calleeRp))
-        val callerPrinter = DotPrinter(callerNp)
+      for (e @ ReturnEdge(NodePoint(_, call, callView), _) <- sem.getRetEdges(calleeRp))
+        val callerPrinter = DotPrinter(e.np)
         val callerRp = callerPrinter.rp
         if (!visited.contains(callerRp))
           visited += callerRp
           callerPrinter.addTo(app)
           aux(callerPrinter, depth - 1)
-        drawCall(callerPrinter, callerNp.node, calleePrinter)
+        drawCall(callerPrinter, call, calleePrinter)
     }
     aux(printer, depth)
 

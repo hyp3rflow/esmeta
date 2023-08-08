@@ -135,10 +135,12 @@ trait AbsTransfer extends Optimized with PruneHelper {
 
     // return wrapped values
     for {
-      np @ NodePoint(func, call, view) <- sem.getRetEdges(rp)
+      e @ ReturnEdge(NodePoint(func, call, view), argRefs) <- sem.getRetEdges(
+        rp,
+      )
       nextNode <- call.next
     } {
-      val callerSt = sem.callInfo(np)
+      val callerSt = sem.callInfo(e.np)
       val nextNp = NodePoint(
         func,
         nextNode,
@@ -148,9 +150,28 @@ trait AbsTransfer extends Optimized with PruneHelper {
         },
       )
 
+      val paramNames = func.params.map(_.lhs)
+      val nameToArgRef = (paramNames zip argRefs).toMap
+      val newSymbolic = (for {
+        x <- value.symbolic.map.keySet
+        m = value.symbolic.map.getOrElse(x, Map())
+        v = (for {
+          id <- m.keySet.collect {
+            case name: Name => name
+          } // TODO: other cases?
+          value = m.getOrElse(id, AbsValue.Bot) // always
+          argRef = nameToArgRef.getOrElse(
+            id,
+            exploded("invalid arg ref"),
+          ) // optional case
+        } yield argRef -> value).toMap
+      } yield x -> v).toMap
+
+      println(s"newSymbolic: $newSymbolic")
+
       val newSt = st.doReturn(
         callerSt,
-        call.lhs -> value,
+        call.lhs -> value.copy(symbolic = AbsSymbolic(map = newSymbolic)),
       )
 
       sem += nextNp -> newSt
@@ -268,7 +289,9 @@ trait AbsTransfer extends Optimized with PruneHelper {
         } yield {
           // closure call (unsound for inifinitely many closures)
           for (AClo(func, captured) <- fv.clo.toIterable(stop = false))
-            doCall(callerNp, st, func, as, captured)
+            // pop ref in args
+            val argRefs = args.collect { case ERef(ref) => ref }
+            doCall(callerNp, st, func, as, argRefs, captured)
           // continuation call (unsound for inifinitely many continuations)
           for (ACont(target, captured) <- fv.cont) {
             val as0 =
@@ -675,6 +698,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
     callerSt: AbsState,
     calleeFunc: Func,
     args: List[AbsValue],
+    argRefs: List[Ref] = Nil,
     captured: Map[Name, AbsValue] = Map(),
     method: Boolean = false,
   ): Unit =
@@ -694,7 +718,7 @@ trait AbsTransfer extends Optimized with PruneHelper {
       // add return edges from callee to caller
       val rp = ReturnPoint(calleeFunc, calleeNp.view)
       val set = sem.getRetEdges(rp)
-      sem.retEdges += rp -> (set + callerNp)
+      sem.retEdges += rp -> (set + ReturnEdge(callerNp, argRefs))
       // propagate callee analysis result
       val retT = sem(rp)
       if (!retT.isBottom) sem.worklist += rp
@@ -706,11 +730,23 @@ trait AbsTransfer extends Optimized with PruneHelper {
     v: AbsValue,
   )(using cp: ControlPoint): Result[Unit] = for {
     st <- get
+    _ = println(s"doReturn v: $v")
     ret = AbsRet(v, st.copied(locals = Map()))
     calleeRp = ReturnPoint(cp.func, cp.view)
     irp = InternalReturnPoint(irReturn, calleeRp)
     _ = doReturn(irp, ret)
   } yield ()
+
+  def getSymbolicFromState(st: AbsState, v: AbsValue)(using
+    cp: ControlPoint,
+  ): AbsSymbolic =
+    val paramNames = cp.func.params.map(_.lhs)
+    val sym = st.locals.collect {
+      case (x: Name, av) if paramNames.contains(x) =>
+        x.asInstanceOf[Ref] -> av // key in Map is invariant
+    }.toMap
+    val map = Map(v -> sym)
+    AbsSymbolic.apply(map = map)
 
   /** update return points */
   def doReturn(irp: InternalReturnPoint, givenRet: AbsRet): Unit =

@@ -11,7 +11,18 @@ import esmeta.util.Appender.*
 object TypeDomain extends ret.Domain {
 
   /** elements */
-  case class Elem(value: AbsValue = AbsValue.Bot) extends Appendable
+  case class Elem(value: AbsValue = AbsValue.Bot) extends Appendable {
+    var symbolic: Map[AbsValue, Map[Int, AbsValue]] = Map()
+    def setSymbolic(symbolic: Map[AbsValue, Map[Int, AbsValue]]): Elem =
+      this.symbolic = symbolic
+      this
+  }
+  object Elem {
+    def apply(
+      value: AbsValue,
+      symbolic: Map[AbsValue, Map[Int, AbsValue]],
+    ): Elem = Elem(value).setSymbolic(symbolic)
+  }
 
   /** top element */
   lazy val Top = Elem(AbsValue.Top)

@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.ir.{COp, Name, VOp, MOp}
+import esmeta.ir.{COp, Name, VOp, MOp, Ref}
 import esmeta.util.*
 
 /** abstract valude domain */
@@ -72,6 +72,7 @@ trait Domain extends domain.Domain[AValue] {
     undef: AbsUndef = AbsUndef.Bot,
     nullv: AbsNull = AbsNull.Bot,
     absent: AbsAbsent = AbsAbsent.Bot,
+    symbolic: AbsSymbolic = AbsSymbolic.Bot,
   ): Elem
 
   /** raw tuple of each simple value type */
@@ -91,6 +92,7 @@ trait Domain extends domain.Domain[AValue] {
 
   /** abstract value interfaces */
   extension (elem: Elem) {
+    def copy(symbolic: AbsSymbolic): Elem
 
     /** get key values */
     def keyValue: Elem
@@ -145,6 +147,7 @@ trait Domain extends domain.Domain[AValue] {
 
     /** prune abstract values */
     def pruneValue(r: Elem, positive: Boolean): Elem
+    def symbolicRefine(r: Elem): Set[(Ref, AbsValue)]
     def pruneField(field: String, r: Elem, positive: Boolean): Elem
     def pruneType(r: Elem, positive: Boolean): Elem
     def pruneTypeCheck(r: Elem, positive: Boolean): Elem
@@ -197,5 +200,6 @@ trait Domain extends domain.Domain[AValue] {
     def nullv: AbsNull
     def absent: AbsAbsent
     def ty: ValueTy
+    def symbolic: AbsSymbolic
   }
 }

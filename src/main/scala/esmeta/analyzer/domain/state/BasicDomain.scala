@@ -122,6 +122,8 @@ object BasicDomain extends state.Domain {
     def lookupGlobal(x: Global): AbsValue =
       elem.globals.getOrElse(x, base.getOrElse(x, AbsValue.Bot))
 
+    def refine(pairs: Set[(Ref, AbsValue)]): Elem = ??? // TODO
+
     /** identifier setter */
     def update(x: Id, value: AbsValue): Elem =
       elem.bottomCheck(AbsValue)(value) {

@@ -3,13 +3,15 @@ package esmeta.analyzer
 import esmeta.analyzer.domain.*
 import esmeta.analyzer.repl.*
 import esmeta.cfg.*
-import esmeta.ir.{Return, Func => IRFunc, Name, Param, Local}
+import esmeta.ir.{Return, Func => IRFunc, Name, Param, Local, Ref}
 import esmeta.error.*
 import esmeta.state.*
 import esmeta.util.*
 import esmeta.util.BaseUtils.*
 import scala.Console.*
 import scala.annotation.tailrec
+
+case class ReturnEdge(np: NodePoint[Call], argRefs: List[Ref] = Nil)
 
 /** abstract semantics */
 class AbsSemantics(
@@ -20,7 +22,7 @@ class AbsSemantics(
   /** abstract states right before calling functions */
   var callInfo: Map[NodePoint[Call], AbsState] = Map(),
   /** return edges */
-  var retEdges: Map[ReturnPoint, Set[NodePoint[Call]]] = Map(),
+  var retEdges: Map[ReturnPoint, Set[ReturnEdge]] = Map(),
   /** loop out edges */
   var loopOut: Map[View, Set[View]] = Map(),
   /** current control point */
@@ -54,7 +56,7 @@ class AbsSemantics(
     npMap.keySet.map(_.func) ++ rpMap.keySet.map(_.func)
 
   /** get return edges */
-  def getRetEdges(rp: ReturnPoint): Set[NodePoint[Call]] =
+  def getRetEdges(rp: ReturnPoint): Set[ReturnEdge] =
     retEdges.getOrElse(rp, Set())
 
   /** lookup for node points */

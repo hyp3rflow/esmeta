@@ -84,6 +84,7 @@ class TypeAnalyzer(
       callerSt: AbsState,
       calleeFunc: Func,
       args: List[AbsValue],
+      argRefs: List[Ref] = Nil,
       captured: Map[Name, AbsValue] = Map(),
       method: Boolean = false,
     ): Unit =
@@ -91,7 +92,8 @@ class TypeAnalyzer(
       calleeFunc.retTy.ty match
         // Stop the propagation of analysis when it is unnecessary to analyze
         // the callee function because it has full type annotations.
-        case retTy: ValueTy if calleeFunc.isParamTysDefined && !TY_SENS =>
+        case retTy: ValueTy
+            if calleeFunc.isParamTysDefined && !TY_SENS && !SYMBOLIC_TY =>
           for {
             nextNode <- call.next
             nextNp = NodePoint(callerFunc, nextNode, View())
@@ -100,7 +102,15 @@ class TypeAnalyzer(
           } sem += nextNp -> newSt
         // Otherwise, do original abstract call semantics
         case _ =>
-          super.doCall(callerNp, callerSt, calleeFunc, args, captured, method)
+          super.doCall(
+            callerNp,
+            callerSt,
+            calleeFunc,
+            args,
+            argRefs,
+            captured,
+            method,
+          )
 
     /** call transition */
     override def getCalleeEntries(

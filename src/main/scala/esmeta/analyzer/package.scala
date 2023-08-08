@@ -108,6 +108,9 @@ var IR_SENS: Boolean = true
 /** Type sensitivity */
 var TY_SENS: Boolean = false
 
+/** Symbolic type refinement */
+var SYMBOLIC_TY: Boolean = true
+
 /** throw exception for not yet compiled expressions */
 var YET_THROW: Boolean = false
 
@@ -233,6 +236,10 @@ type AbsObj = AbsObj.Elem
 type ValueDomain = value.Domain
 lazy val AbsValue = _valueDomain.getOrElse(value.BasicDomain)
 type AbsValue = AbsValue.Elem
+
+type SymbolicDomain = symbolic.Domain
+lazy val AbsSymbolic = symbolic.TypeDomain // FIXME
+type AbsSymbolic = AbsSymbolic.Elem
 
 type CompDomain = comp.Domain
 lazy val AbsComp = _compDomain.getOrElse(comp.BasicDomain)

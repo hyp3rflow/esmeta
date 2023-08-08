@@ -139,6 +139,8 @@ class Stringifier(
       case CodeUnit(c)     => app >> c.toInt >> "cu"
       case sv: SimpleValue => app >> sv.toString
 
+  // given asRule: Rule[ASymbolic] = (app, as) => ???
+
   // specification type mismatches
   given mismatchRule: Rule[TypeMismatch] = (app, mismatch) =>
     mismatch match

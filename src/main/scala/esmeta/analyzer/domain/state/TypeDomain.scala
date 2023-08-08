@@ -142,6 +142,19 @@ object TypeDomain extends state.Domain {
         //   warning(s"invalid global variable update: $x = $value")
         elem
 
+    // TODO why not (Ref, AbsValue)* ?
+    def refine(pairs: Set[(Ref, AbsValue)]): Elem = {
+      // TODO handle Global?
+      val localPairs = pairs.collect { case (x: Local, v) => x -> v }
+      val newLocals = (for {
+        (x, v) <- localPairs
+        oldV = elem.lookupLocal(x)
+        newV = oldV ⊓ v
+        if newV != oldV // I think this is not necessary
+      } yield x -> newV).toMap
+      elem.copy(locals = elem.locals ++ newLocals)
+    }
+
     /** property setter */
     def update(
       base: AbsValue,

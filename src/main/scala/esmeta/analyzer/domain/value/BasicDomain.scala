@@ -6,7 +6,7 @@ import esmeta.cfg.Func
 import esmeta.es.*
 import esmeta.state.*
 import esmeta.ty.*
-import esmeta.ir.{COp, Name, VOp, MOp}
+import esmeta.ir.{COp, Name, VOp, MOp, Ref}
 import esmeta.parser.ESValueParser
 import esmeta.util.*
 import esmeta.util.Appender.*
@@ -18,6 +18,7 @@ object BasicDomain extends value.Domain {
   case class Elem(
     comp: AbsComp = AbsComp.Bot,
     pureValue: AbsPureValue = AbsPureValue.Bot,
+    symbolic: AbsSymbolic = AbsSymbolic.Bot,
   ) extends Appendable
 
   /** top element */
@@ -82,6 +83,7 @@ object BasicDomain extends value.Domain {
     undef: AbsUndef = AbsUndef.Bot,
     nullv: AbsNull = AbsNull.Bot,
     absent: AbsAbsent = AbsAbsent.Bot,
+    symbolic: AbsSymbolic = AbsSymbolic.Bot,
   ): Elem = Elem(
     comp,
     pureValue ⊔ AbsPureValue(
@@ -103,6 +105,7 @@ object BasicDomain extends value.Domain {
         absent,
       ),
     ),
+    symbolic,
   )
 
   /** extractors */
@@ -116,7 +119,7 @@ object BasicDomain extends value.Domain {
   /** appender */
   given rule: Rule[Elem] = (app, elem) =>
     if (!elem.isBottom) {
-      val Elem(comp, pureValue) = elem
+      val Elem(comp, pureValue, symbolic) = elem
       var strs = Vector[String]()
       if (!comp.isBottom) strs :+= comp.toString
       if (!pureValue.isBottom) strs :+= pureValue.toString
@@ -171,6 +174,7 @@ object BasicDomain extends value.Domain {
 
   /** element interfaces */
   extension (elem: Elem) {
+    def copy(symbolic: AbsSymbolic) = elem.copy(symbolic = symbolic)
 
     /** get key values */
     def keyValue: Elem = apply(part = part, str = str)
@@ -446,6 +450,7 @@ object BasicDomain extends value.Domain {
 
     /** prune abstract values */
     def pruneValue(r: Elem, positive: Boolean): Elem = elem
+    def symbolicRefine(r: Elem): Set[(Ref, AbsValue)] = ??? // TODO
     def pruneField(field: String, r: Elem, positive: Boolean): Elem = elem
     def pruneType(r: Elem, positive: Boolean): Elem = elem
     def pruneTypeCheck(r: Elem, positive: Boolean): Elem = elem
@@ -510,6 +515,7 @@ object BasicDomain extends value.Domain {
     def nullv: AbsNull = elem.pureValue.nullv
     def absent: AbsAbsent = elem.pureValue.absent
     def ty: ValueTy = notSupported("value.BasicDomain.toTy")
+    def symbolic: AbsSymbolic = notSupported("value.BasicDomain.toSymbolic")
 
     // -------------------------------------------------------------------------
     // private helpers

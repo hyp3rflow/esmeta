@@ -4,7 +4,7 @@ import esmeta.analyzer.*
 import esmeta.analyzer.domain.*
 import esmeta.cfg.Func
 import esmeta.es.*
-import esmeta.ir.{COp, Name, VOp, MOp}
+import esmeta.ir.{COp, Name, VOp, MOp, Ref}
 import esmeta.parser.ESValueParser
 import esmeta.state.*
 import esmeta.spec.{Grammar => _, *}
@@ -20,13 +20,14 @@ import scala.collection.mutable.{Map => MMap, Set => MSet}
 object TypeDomain extends value.Domain {
 
   /** elements */
-  case class Elem(ty: ValueTy) extends Appendable
+  case class Elem(ty: ValueTy, symbolic: AbsSymbolic = AbsSymbolic.Bot)
+    extends Appendable
 
   /** top element */
   lazy val Top: Elem = exploded("top abstract value")
 
   /** bottom element */
-  val Bot: Elem = Elem(ValueTy())
+  val Bot: Elem = Elem(ValueTy(), AbsSymbolic.Bot)
 
   /** abstraction functions */
   def alpha(vs: Iterable[AValue]): Elem = Elem(getValueTy(vs))
@@ -110,6 +111,7 @@ object TypeDomain extends value.Domain {
 
   /** element interfaces */
   extension (elem: Elem) {
+    def copy(symbolic: AbsSymbolic) = elem.copy(symbolic = symbolic)
 
     /** get key values */
     def keyValue: Elem = notSupported("value.TypeDomain.Elem.keyValue")
@@ -239,6 +241,8 @@ object TypeDomain extends value.Domain {
       if (positive) elem ⊓ r
       else if (r.isSingle) elem -- r
       else elem
+    def symbolicRefine(r: Elem): Set[(Ref, AbsValue)] =
+      elem.symbolic.get(r.asInstanceOf[AbsValue]).toSet
     def pruneField(field: String, r: Elem, positive: Boolean): Elem =
       field match
         case "Value" =>
@@ -378,6 +382,7 @@ object TypeDomain extends value.Domain {
     def nullv: AbsNull = notSupported("value.TypeDomain.Elem.absent")
     def absent: AbsAbsent = notSupported("value.TypeDomain.Elem.ty")
     def ty: ValueTy = elem.ty
+    def symbolic: AbsSymbolic = elem.symbolic
   }
 
   // ---------------------------------------------------------------------------

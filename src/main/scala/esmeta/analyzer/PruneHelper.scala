@@ -24,7 +24,9 @@ trait PruneHelper { this: AbsTransfer =>
         r <- transfer(target)
         lv <- transfer(l)
         prunedV = lv.pruneValue(r, positive)
+        refines = lv.symbolicRefine(prunedV)
         _ <- modify(_.update(l, prunedV))
+        _ <- modify(_.refine(refines))
       } yield ()
     // prune fields
     case EBinary(BOp.Eq, ERef(Prop(ref: Local, EStr(field))), target) =>
